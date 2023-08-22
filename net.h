@@ -23,6 +23,9 @@
 #define NET_DEVICE_IS_UP(x) ((x)->flags & NET_DEVICE_FLAG_UP)
 #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")
 
+/* NOTE: use same value as the Ethernet types */
+#define NET_PROTOCOL_TYPE_IP   0x0800
+
 struct net_device {
     struct net_device *next;
     unsigned int index;
@@ -63,5 +66,28 @@ extern void
 net_shutdown(void);
 extern int
 net_init(void);
+
+// STEP 4
+// プロトコル構造体
+// デバイスと同様に連結リストで管理する
+struct net_protocol {
+    struct net_protocol *next; // 次のプロトコルへのポインタ
+    uint16_t type; // プロトコルの種類 （net.h に NET_PROTOCL_TYPE_XXX として定義）
+    struct queue_head queue; // 受信キュー
+    void (*handler)(const uint8_t *data, size_t len, struct net_device *dev); //プロトコルの入力関数へのポインタ
+};
+
+// 受信キューのエントリの構造体
+//  ・受信データと付随する情報（メタデータ）を格納
+//  ・ループバックデバイスの時と同じ ※ 61ページを参照
+struct net_protocol_queue_entry {
+    struct net_device *dev;
+    size_t len;
+    uint8_t data[];
+};
+
+int net_protocol_register(uint16_t type, void (*handler)(const uint8_t *data, size_t len, struct net_device *dev));
+
+
 
 #endif
